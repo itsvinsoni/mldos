@@ -12,18 +12,29 @@ import SchoolsPage from './features/public_pages/SchoolsPage';
 
 
 const App: React.FC = () => {
-  // State is now based on the URL hash
   const [currentHash, setCurrentHash] = useState(window.location.hash || '#/');
 
-  // The navigate function now manipulates the hash
   const navigate = useCallback((to: string) => {
-    // Ensure the path starts with /
     const targetPath = to.startsWith('/') ? to : `/${to}`;
-    window.location.hash = targetPath;
-    window.scrollTo(0, 0); // Scroll to top on navigation
+    if (window.location.hash !== `#${targetPath}`) {
+      window.location.hash = targetPath;
+      window.scrollTo(0, 0);
+    }
   }, []);
 
-  // Listen for hash changes (e.g., browser back/forward buttons)
+  useEffect(() => {
+    // This effect runs once on initial load to handle deep links on static hosts like Netlify
+    const path = window.location.pathname;
+    const hash = window.location.hash;
+    // If there's a path but no hash, it means the user accessed a deep link directly.
+    // The _redirects rule served index.html, and now we must sync the path to the hash.
+    if (path !== '/' && path !== '/index.html' && !hash) {
+      // Use replace to avoid a broken "back" button history
+      window.location.replace(`/#${path}`);
+    }
+  }, []);
+
+
   useEffect(() => {
     const onHashChange = () => {
       setCurrentHash(window.location.hash || '#/');
@@ -34,10 +45,8 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // The path for routing is derived from the hash, removing the '#'
   const path = useMemo(() => currentHash.substring(1) || '/', [currentHash]);
 
-  // Main Router
   if (path.startsWith('/portal')) {
     return <CollegeOSApp navigate={navigate} />;
   }
@@ -62,7 +71,7 @@ const App: React.FC = () => {
     case '/privacy':
         return <PrivacyPage navigate={navigate} />;
     default:
-        // For any other path, redirect to home. In a real app, this would be a 404 page.
+        // For any other path, redirect to home.
         return <LandingPage navigate={navigate} />;
   }
 };
